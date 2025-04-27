@@ -1,0 +1,62 @@
+tree                                                                                                                                                                                                                    set ns [new Simulator]
+
+# Open trace files for output
+set nf [open out.nam w]
+$ns namtrace-all $nf
+set tr [open out.tr w]
+$ns trace-all $tr
+
+# Define a procedure to finish simulation and close files
+proc finish {} {
+    global ns nf tr
+    $ns flush-trace
+    close $nf
+    close $tr
+    exec nam out.nam &
+    exit 0
+}
+
+# Create the root node
+set root_node [$ns node]
+
+# Number of branch nodes per level
+set branch_nodes_per_level 2
+
+# Number of levels in the tree
+set levels 4
+
+# Create the tree structure using a for loop
+for {set i 0} {$i < $levels} {incr i} {
+    for {set j 0} {$j < $branch_nodes_per_level**$i} {incr j} {
+        set node($i,$j) [$ns node]
+        if {$i == 0} {
+            $ns duplex-link $root_node $node($i,$j) 1Mb 10ms DropTail
+        } else {
+            set parent_idx [expr {int($j / $branch_nodes_per_level)}]
+            set parent_node $node([expr $i - 1],$parent_idx)
+            $ns duplex-link $parent_node $node($i,$j) 1Mb 10ms DropTail
+        }
+    }
+}
+
+# Set up source and destination nodes
+set src_node $node(0,0)
+set dest_node $node([expr $levels - 1],[expr $branch_nodes_per_level**($levels-1)-1])
+
+# Create a TCP application
+set tcp [new Agent/TCP]
+$ns attach-agent $src_node $tcp
+
+# Create a sink agent at the destination node
+set sink [new Agent/TCPSink]
+$ns attach-agent $dest_node $sink
+$ns connect $tcp $sink
+
+# Start the TCP application
+$ns at 0.1 "$tcp start"
+
+# Schedule the end of simulation
+$ns at 5.0 "finish"
+
+# Run the simulation
+$ns run
