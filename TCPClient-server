@@ -1,0 +1,134 @@
+import java.io.*;
+import java.net.*;
+public class Client2 {
+ public static void main(String[] args) {
+ Socket socket = null;
+ PrintWriter out = null;
+ BufferedReader in = null;
+ BufferedReader userInput = null;
+ try {
+ // Connect to the server at localhost on port 1234
+ socket = new Socket("localhost", 1234);
+ System.out.println("Connected to server");
+ // Setup input and output streams
+ out = new PrintWriter(socket.getOutputStream(), true);
+ in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+ userInput = new BufferedReader(new InputStreamReader(System.in));
+ // Prompt the user for the two numbers and the operation
+ String userMessage;
+ String response;
+
+ while (true) {
+ // Get first number, second number, and operation from the user
+ System.out.print("Enter first number: ");
+ double num1 = Double.parseDouble(userInput.readLine());
+ System.out.print("Enter second number: ");
+ double num2 = Double.parseDouble(userInput.readLine());
+ System.out.print("Enter operation (add, subtract, multiply, divide): ");
+ String operation = userInput.readLine();
+ // Send the input to the server
+ out.println(num1 + " " + num2 + " " + operation);
+ // Receive the result from the server
+ String serverResponse = in.readLine();
+ System.out.println(serverResponse);
+ // Ask the user if they want to perform another operation
+ System.out.print("Do you want to perform another operation? (yes/no): ");
+ response = userInput.readLine();
+ if (response.equalsIgnoreCase("no")) {
+ break; // Exit the loop if the user types "no"
+ }
+ }
+ } catch (IOException e) {
+ System.err.println("Error: " + e.getMessage());
+ } finally {
+ // Ensure resources are closed properly before exiting
+ try {
+ if (in != null) in.close();
+ if (out != null) out.close();
+ if (socket != null) socket.close();
+ if (userInput != null) userInput.close();
+ } catch (IOException e) {
+ System.err.println("Error closing resources: " + e.getMessage());
+ }
+ }
+ System.out.println("Client terminated.");
+ }
+}
+
+
+
+
+import java.io.*;
+import java.net.*;
+public class Server2 {
+ public static void main(String[] args) {
+ ServerSocket serverSocket = null;
+ Socket clientSocket = null;
+ PrintWriter out = null;
+ BufferedReader in = null;
+ try {
+ // Server listens on port 1234
+ serverSocket = new ServerSocket(1234);
+ System.out.println("Server is waiting for a connection...");
+ // Accept the connection from client
+ clientSocket = serverSocket.accept();
+ System.out.println("Client connected: " + clientSocket.getInetAddress());
+ // Setup input and output streams
+ in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+ out = new PrintWriter(clientSocket.getOutputStream(), true);
+ // Read numbers and operation from client
+ String message;
+ while ((message = in.readLine()) != null) {
+ String[] messageParts = message.split(" ");
+
+ if (messageParts.length == 3) {
+ double num1 = Double.parseDouble(messageParts[0]);
+ double num2 = Double.parseDouble(messageParts[1]);
+ String operation = messageParts[2];
+ double result = 0;
+ boolean validOperation = true;
+ // Perform the operation
+ switch (operation.toLowerCase()) {
+ case "add":
+ result = num1 + num2;
+ break;
+ case "subtract":
+ result = num1 - num2;
+ break;
+ case "multiply":
+ result = num1 * num2;
+ break;
+ case "divide":
+ if (num2 != 0) {
+ result = num1 / num2;
+ } else {
+ out.println("Error: Division by zero.");
+ validOperation = false;
+ }
+ break;
+ default:
+ out.println("Error: Invalid operation.");
+ validOperation = false;
+ }
+ // Send the result back to the client
+ if (validOperation) {
+ out.println("Result: " + result);
+ }
+ } else {
+ out.println("Error: Invalid input. Please send two numbers and an operation.");
+ }
+ }
+ } catch (IOException e) {
+ System.err.println("Error: " + e.getMessage());
+ } finally {
+ try {
+ if (in != null) in.close();
+ if (out != null) out.close();
+ if (clientSocket != null) clientSocket.close();
+ if (serverSocket != null) serverSocket.close();
+ } catch (IOException e) {
+ System.err.println("Error closing resources: " + e.getMessage());
+ }
+ }
+ }
+}
