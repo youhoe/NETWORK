@@ -1,0 +1,90 @@
+import java.net.*;
+public class UDPServer {
+public static void main(String[] args) {
+DatagramSocket socket = null;
+try {
+// Create a DatagramSocket to listen on port 9876
+socket = new DatagramSocket(9876);
+byte[] receiveData = new byte[1024];
+System.out.println("Server is listening on port 9876...");
+while (true) {
+// Receive the packet from the client
+DatagramPacket receivePacket = new DatagramPacket(receiveData,
+receiveData.length);
+socket.receive(receivePacket);
+// Extract data from the packet
+String message = new String(receivePacket.getData(), 0,
+receivePacket.getLength());
+String[] parts = message.split(",");
+if (parts.length == 2) {
+// Parse numbers for multiplication
+try {
+int num1 = Integer.parseInt(parts[0].trim());
+int num2 = Integer.parseInt(parts[1].trim());
+// Perform multiplication
+int result = num1 * num2;
+// Send the result back to the client
+String responseMessage = "Multiplication Result: " + result;
+byte[] sendData = responseMessage.getBytes();
+InetAddress clientAddress = receivePacket.getAddress();
+int clientPort = receivePacket.getPort();
+DatagramPacket sendPacket = new DatagramPacket(sendData,
+sendData.length, clientAddress, clientPort);
+socket.send(sendPacket);
+} catch (NumberFormatException e) {
+System.out.println("Error: Invalid numbers received.");
+}
+} else {
+System.out.println("Error: Invalid message format.");
+}
+}
+} catch (Exception e) {
+e.printStackTrace();
+} finally {
+if (socket != null && !socket.isClosed()) {
+socket.close();
+}
+}
+}
+}
+
+
+
+import java.net.*;
+public class UDPClient {
+public static void main(String[] args) {
+DatagramSocket socket = null;
+try {
+// Create a DatagramSocket
+socket = new DatagramSocket();
+// Numbers to send for multiplication
+int num1 = 6;
+int num2 = 7;
+// Format the message as "num1,num2"
+String message = num1 + "," + num2;
+byte[] sendData = message.getBytes();
+// Specify the server address and port
+InetAddress serverAddress = InetAddress.getByName("localhost");
+int serverPort = 9876;
+// Create a DatagramPacket to send the message
+DatagramPacket sendPacket = new DatagramPacket(sendData,
+sendData.length, serverAddress, serverPort);
+socket.send(sendPacket);
+System.out.println("Message sent to server: " + message);
+// Receive the response from the server
+byte[] receiveData = new byte[1024];
+DatagramPacket receivePacket = new DatagramPacket(receiveData,
+receiveData.length);
+socket.receive(receivePacket);
+String responseMessage = new String(receivePacket.getData(), 0,
+receivePacket.getLength());
+System.out.println("Received response from server: " + responseMessage);
+} catch (Exception e) {
+e.printStackTrace();
+} finally {
+if (socket != null && !socket.isClosed()) {
+socket.close();
+}
+}
+}
+}
