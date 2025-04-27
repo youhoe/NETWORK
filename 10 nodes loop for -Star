@@ -1,0 +1,55 @@
+STAR                                                                                                                                                                                                                    set ns [new Simulator]
+
+# Open trace files for output
+set nf [open out.nam w]
+$ns namtrace-all $nf
+set tr [open out.tr w]
+$ns trace-all $tr
+
+# Define a procedure to finish simulation and close files
+proc finish {} {
+    global ns nf tr
+    $ns flush-trace
+    close $nf
+    close $tr
+    exec nam out.nam &
+    exit 0
+}
+
+# Number of nodes
+set num_nodes 10
+
+# Create the center node
+set center_node [$ns node]
+
+# Create nodes using a for loop
+for {set i 0} {$i < $num_nodes - 1} {incr i} {
+    set n($i) [$ns node]
+}
+
+# Connect all nodes to the center node (star topology)
+for {set i 0} {$i < $num_nodes - 1} {incr i} {
+    $ns duplex-link $center_node $n($i) 1Mb 10ms DropTail
+}
+
+# Set up source and destination nodes
+set src_node $n(0)
+set dest_node $n($num_nodes - 2) ;# Choosing an arbitrary node as destination, could be any node
+
+# Create a TCP application
+set tcp [new Agent/TCP]
+$ns attach-agent $src_node $tcp
+
+# Create a sink agent at the destination node
+set sink [new Agent/TCPSink]
+$ns attach-agent $dest_node $sink
+$ns connect $tcp $sink
+
+# Start the TCP application
+$ns at 0.1 "$tcp start"
+
+# Schedule the end of simulation
+$ns at 5.0 "finish"
+
+# Run the simulation
+$ns run
